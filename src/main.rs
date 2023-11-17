@@ -23,14 +23,26 @@ fn main() {
     grid[5][5] = true;
     grid[9][0] = true;
 
-    print_grid(&grid);
+    let grid = Grid::new(grid);
+
+    grid.print();
 }
 
-fn print_grid<const N: usize, const M: usize>(grid: &[[bool; N]; M]) {
-    for row in grid.iter() {
-        for &cell in row.iter() {
-            print!("{}", if cell { FULL_CHAR } else { EMPTY_CHAR })
+struct Grid<const N: usize, const M: usize> {
+    grid: [[bool; N]; M],
+}
+
+impl<const N: usize, const M: usize> Grid<N, M> {
+    fn new(grid: [[bool; N]; M]) -> Self {
+        Self { grid }
+    }
+
+    fn print(&self) {
+        for row in self.grid.iter() {
+            for &cell in row.iter() {
+                print!("{}", if cell { FULL_CHAR } else { EMPTY_CHAR })
+            }
+            println!();
         }
-        println!();
     }
 }
