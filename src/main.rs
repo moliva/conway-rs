@@ -19,8 +19,10 @@ fn main() {
     // set live cells
     grid.stamp(Stamp::Point, (9, 0));
     grid.stamp(Stamp::Block, (4, 4));
-    grid.stamp(Stamp::Oscillator, (8, 7));
+    grid.stamp(Stamp::Blinker, (8, 7));
     grid.stamp(Stamp::Glider, (0, 7));
+    grid.stamp(Stamp::BeeHive, (4, 15));
+    grid.stamp(Stamp::Tub, (10, 15));
 
     for i in 0.. {
         println!("tick {}", i);
@@ -29,5 +31,9 @@ fn main() {
 
         use std::io::prelude::*;
         let _ = std::io::stdin().read(&mut [0u8]).unwrap();
+
+        if i == 5 {
+            grid.stamp(Stamp::Block, (10,10));
+        }
     }
 }

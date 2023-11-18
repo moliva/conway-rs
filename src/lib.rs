@@ -4,9 +4,23 @@ const FULL_CHAR: &str = "▓";
 #[derive(Debug)]
 pub enum Stamp {
     Point,
+    // still lifes
     Block,
-    Oscillator,
+    BeeHive,
+    Loaf,
+    Boat,
+    Tub,
+    // oscillators
+    Blinker,
+    Toad,
+    Beacon,
+    Pulsar,
+    PentaDecathlon,
+    // spaceships
     Glider,
+    LighWeightSpaceship,
+    MiddleWeightSpaceship,
+    HeavyWeightSpaceship,
 }
 
 pub struct Grid<const N: usize, const M: usize> {
@@ -55,32 +69,57 @@ impl<const N: usize, const M: usize> Grid<N, M> {
         self.grid = new_grid;
     }
 
+    fn mark_alive(&mut self, positions: &[(usize, usize)]) {
+        for &(x, y) in positions {
+            self.grid[x][y] = true;
+        }
+    }
+
     pub fn stamp(&mut self, stamp: Stamp, initial_position: (usize, usize)) {
         use Stamp::*;
 
         let (xi, yi) = initial_position;
         match stamp {
             Point => {
-                self.grid[xi][yi] = true;
+                self.mark_alive(&[initial_position]);
             }
-            Block => {
-                self.grid[xi][yi] = true;
-                self.grid[xi][yi + 1] = true;
-                self.grid[xi + 1][yi] = true;
-                self.grid[xi + 1][yi + 1] = true;
-            }
-            Oscillator => {
-                self.grid[xi][yi] = true;
-                self.grid[xi][yi + 1] = true;
-                self.grid[xi][yi + 2] = true;
-            }
-            Glider => {
-                self.grid[xi][yi] = true;
-                self.grid[xi + 1][yi + 1] = true;
-                self.grid[xi + 1][yi + 2] = true;
-                self.grid[xi + 2][yi] = true;
-                self.grid[xi + 2][yi + 1] = true;
-            }
+            Block => self.mark_alive(&[
+                initial_position,
+                (xi, yi + 1),
+                (xi + 1, yi),
+                (xi + 1, yi + 1),
+            ]),
+            BeeHive => self.mark_alive(&[
+                (xi + 1, yi),
+                (xi, yi + 1),
+                (xi + 2, yi + 1),
+                (xi, yi + 2),
+                (xi + 2, yi + 2),
+                (xi + 1, yi + 3),
+            ]),
+            Loaf => todo!(),
+            Boat => todo!(),
+            Tub => self.mark_alive(&[
+                (xi + 1, yi),
+                (xi, yi + 1),
+                (xi + 1, yi + 2),
+                (xi + 2, yi + 1),
+            ]),
+            Blinker => self.mark_alive(&[initial_position, (xi, yi + 1), (xi, yi + 2)]),
+            Toad => todo!(),
+            Beacon => todo!(),
+            Pulsar => todo!(),
+            PentaDecathlon => todo!(),
+            Glider => self.mark_alive(&[
+                initial_position,
+                (xi + 1, yi + 1),
+                (xi + 1, yi + 2),
+                (xi + 2, yi),
+                (xi + 2, yi + 1),
+            ]),
+            LighWeightSpaceship => todo!(),
+            MiddleWeightSpaceship => todo!(),
+            HeavyWeightSpaceship => todo!(),
         }
     }
 
