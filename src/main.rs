@@ -1,6 +1,4 @@
-use std::time::Duration;
-
-const COL_SIZE: usize = 10;
+const COL_SIZE: usize = 20;
 const ROW_SIZE: usize = 10;
 
 const EMPTY_CHAR: &str = "░";
@@ -22,16 +20,26 @@ fn main() {
     let mut grid = [[false; COL_SIZE]; ROW_SIZE];
 
     // set live cells
+    // block
     grid[5][5] = true;
     grid[4][5] = true;
     grid[5][4] = true;
     grid[4][4] = true;
 
+    // alone
     grid[9][0] = true;
 
+    // oscillator
     grid[8][7] = true;
     grid[8][8] = true;
     grid[8][9] = true;
+
+    // glider
+    grid[0][7] = true;
+    grid[1][8] = true;
+    grid[1][9] = true;
+    grid[2][7] = true;
+    grid[2][8] = true;
 
     let mut grid = Grid::new(grid);
 
@@ -47,16 +55,12 @@ fn main() {
 
 pub struct Grid<const N: usize, const M: usize> {
     grid: [[bool; N]; M],
-    // rows: usize,
-    // columns: usize,
 }
 
 impl<const N: usize, const M: usize> Grid<N, M> {
     pub fn new(grid: [[bool; N]; M]) -> Self {
         Self {
             grid,
-            // rows: N,
-            // columns: M,
         }
     }
 
@@ -82,10 +86,7 @@ impl<const N: usize, const M: usize> Grid<N, M> {
             for (j, &cell) in row.iter().enumerate() {
                 let n = self.live_neighbors_around(i, j);
 
-                // 1. Any live cell with fewer than two live neighbours dies, as if by underpopulation.
-                // 2. Any live cell with two or three live neighbours lives on to the next generation.
-                // 3. Any live cell with more than three live neighbours dies, as if by overpopulation.
-                // 4. Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction
+                // only set to true when conditions met for life to appear/persist
                 if (cell && n == 2) || n == 3 {
                     new_grid[i][j] = true;
                 }
