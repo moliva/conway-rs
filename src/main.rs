@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 const COL_SIZE: usize = 10;
 const ROW_SIZE: usize = 10;
 
@@ -33,18 +35,14 @@ fn main() {
 
     let mut grid = Grid::new(grid);
 
-    println!("tick 0");
-    grid.print();
+    for i in 0.. {
+        println!("tick {}", i);
+        grid.print();
+        grid.tick();
 
-    grid.tick();
-
-    println!("tick 1");
-    grid.print();
-
-    grid.tick();
-
-    println!("tick 2");
-    grid.print();
+        use std::io::prelude::*;
+        let _ = std::io::stdin().read(&mut [0u8]).unwrap();
+    }
 }
 
 pub struct Grid<const N: usize, const M: usize> {
@@ -84,15 +82,11 @@ impl<const N: usize, const M: usize> Grid<N, M> {
             for (j, &cell) in row.iter().enumerate() {
                 let n = self.live_neighbors_around(i, j);
 
-                if cell {
-                    // * 1. Any live cell with fewer than two live neighbours dies, as if by underpopulation.
-                    // * 2. Any live cell with two or three live neighbours lives on to the next generation.
-                    // * 3. Any live cell with more than three live neighbours dies, as if by overpopulation.
-                    if n == 2 || n == 3 {
-                        new_grid[i][j] = true;
-                    }
-                } else if n == 3 {
-                    // * 4. Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction
+                // 1. Any live cell with fewer than two live neighbours dies, as if by underpopulation.
+                // 2. Any live cell with two or three live neighbours lives on to the next generation.
+                // 3. Any live cell with more than three live neighbours dies, as if by overpopulation.
+                // 4. Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction
+                if (cell && n == 2) || n == 3 {
                     new_grid[i][j] = true;
                 }
             }
