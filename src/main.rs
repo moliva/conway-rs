@@ -21,28 +21,120 @@ fn main() {
 
     // set live cells
     grid[5][5] = true;
+    grid[4][5] = true;
+    grid[5][4] = true;
+    grid[4][4] = true;
+
     grid[9][0] = true;
 
-    let grid = Grid::new(grid);
+    grid[8][7] = true;
+    grid[8][8] = true;
+    grid[8][9] = true;
 
+    let mut grid = Grid::new(grid);
+
+    println!("tick 0");
+    grid.print();
+
+    grid.tick();
+
+    println!("tick 1");
+    grid.print();
+
+    grid.tick();
+
+    println!("tick 2");
     grid.print();
 }
 
-struct Grid<const N: usize, const M: usize> {
+pub struct Grid<const N: usize, const M: usize> {
     grid: [[bool; N]; M],
+    // rows: usize,
+    // columns: usize,
 }
 
 impl<const N: usize, const M: usize> Grid<N, M> {
-    fn new(grid: [[bool; N]; M]) -> Self {
-        Self { grid }
+    pub fn new(grid: [[bool; N]; M]) -> Self {
+        Self {
+            grid,
+            // rows: N,
+            // columns: M,
+        }
     }
 
-    fn print(&self) {
+    pub fn print(&self) {
         for row in self.grid.iter() {
             for &cell in row.iter() {
                 print!("{}", if cell { FULL_CHAR } else { EMPTY_CHAR })
             }
             println!();
         }
+    }
+
+    /**
+     * 1. Any live cell with fewer than two live neighbours dies, as if by underpopulation.
+     * 2. Any live cell with two or three live neighbours lives on to the next generation.
+     * 3. Any live cell with more than three live neighbours dies, as if by overpopulation.
+     * 4. Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction
+     */
+    pub fn tick(&mut self) {
+        let mut new_grid = [[false; N]; M];
+
+        for (i, row) in self.grid.iter().enumerate() {
+            for (j, &cell) in row.iter().enumerate() {
+                let n = self.live_neighbors_around(i, j);
+
+                if cell {
+                    // * 1. Any live cell with fewer than two live neighbours dies, as if by underpopulation.
+                    // * 2. Any live cell with two or three live neighbours lives on to the next generation.
+                    // * 3. Any live cell with more than three live neighbours dies, as if by overpopulation.
+                    if n == 2 || n == 3 {
+                        new_grid[i][j] = true;
+                    }
+                } else if n == 3 {
+                    // * 4. Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction
+                    new_grid[i][j] = true;
+                }
+            }
+        }
+
+        self.grid = new_grid;
+    }
+
+    fn live_neighbors_around(&self, i: usize, j: usize) -> usize {
+        let mut live_neighbors = 0;
+
+        if i > 0 {
+            if j > 0 && self.grid[i - 1][j - 1] {
+                live_neighbors += 1;
+            }
+            if self.grid[i - 1][j] {
+                live_neighbors += 1;
+            }
+            if j < N - 1 && self.grid[i - 1][j + 1] {
+                live_neighbors += 1;
+            }
+        }
+
+        if j > 0 && self.grid[i][j - 1] {
+            live_neighbors += 1;
+        }
+        if j < N - 1 && self.grid[i][j + 1] {
+            live_neighbors += 1;
+        }
+
+        if i < M - 1 {
+            if j > 0 && self.grid[i + 1][j - 1] {
+                live_neighbors += 1;
+            }
+            if self.grid[i + 1][j] {
+                live_neighbors += 1;
+            }
+            if j < N - 1 && self.grid[i + 1][j + 1] {
+                live_neighbors += 1;
+            }
+        }
+
+        live_neighbors
     }
 }
