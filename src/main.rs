@@ -40,7 +40,7 @@ fn main() {
         // Insert as resource the initial value for the settings resources
         // .insert_resource(TeamSize(3))
         .add_systems(Startup, spawn_camera)
-        .add_systems(Update, (spawn_grid, tickity)
+        .add_systems(Update, (spawn_grid, tickity))
         // Adds the plugins for each state
         // .add_plugins((splash::SplashPlugin, menu::MenuPlugin, game::GamePlugin))
         .run();
@@ -65,7 +65,14 @@ fn tickity(
     }
 }
 
-fn spawn_grid(mut commands: Commands, grid: ResMut<Grid<COL_SIZE, ROW_SIZE>>) {
+fn spawn_grid(
+    mut commands: Commands,
+    grid: ResMut<Grid<COL_SIZE, ROW_SIZE>>,
+    query: Query<Entity, With<Node>>,
+) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn();
+    }
     // Top-level grid (app frame)
     commands
         .spawn(NodeBundle {
