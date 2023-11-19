@@ -1,3 +1,5 @@
+use bevy::prelude::{Resource, Component};
+
 const EMPTY_CHAR: &str = "░";
 const FULL_CHAR: &str = "▓";
 
@@ -23,8 +25,9 @@ pub enum Stamp {
     HeavyWeightSpaceship,
 }
 
+#[derive(Resource, Debug, Component, PartialEq, Eq, Clone, Copy)]
 pub struct Grid<const N: usize, const M: usize> {
-    grid: [[bool; N]; M],
+    pub grid: [[bool; N]; M],
 }
 
 impl<const N: usize, const M: usize> Grid<N, M> {
@@ -79,48 +82,48 @@ impl<const N: usize, const M: usize> Grid<N, M> {
         use Stamp::*;
 
         let (xi, yi) = initial_position;
-        match stamp {
-            Point => {
-                self.mark_alive(&[initial_position]);
-            }
-            Block => self.mark_alive(&[
+        let positions = match stamp {
+            Point => vec![initial_position],
+            Block => vec![
                 initial_position,
                 (xi, yi + 1),
                 (xi + 1, yi),
                 (xi + 1, yi + 1),
-            ]),
-            BeeHive => self.mark_alive(&[
+            ],
+            BeeHive => vec![
                 (xi + 1, yi),
                 (xi, yi + 1),
                 (xi + 2, yi + 1),
                 (xi, yi + 2),
                 (xi + 2, yi + 2),
                 (xi + 1, yi + 3),
-            ]),
+            ],
             Loaf => todo!(),
             Boat => todo!(),
-            Tub => self.mark_alive(&[
+            Tub => vec![
                 (xi + 1, yi),
                 (xi, yi + 1),
                 (xi + 1, yi + 2),
                 (xi + 2, yi + 1),
-            ]),
-            Blinker => self.mark_alive(&[initial_position, (xi, yi + 1), (xi, yi + 2)]),
+            ],
+            Blinker => vec![initial_position, (xi, yi + 1), (xi, yi + 2)],
             Toad => todo!(),
             Beacon => todo!(),
             Pulsar => todo!(),
             PentaDecathlon => todo!(),
-            Glider => self.mark_alive(&[
+            Glider => vec![
                 initial_position,
                 (xi + 1, yi + 1),
                 (xi + 1, yi + 2),
                 (xi + 2, yi),
                 (xi + 2, yi + 1),
-            ]),
+            ],
             LighWeightSpaceship => todo!(),
             MiddleWeightSpaceship => todo!(),
             HeavyWeightSpaceship => todo!(),
-        }
+        };
+
+        self.mark_alive(&positions[..])
     }
 
     fn live_neighbors_around(&self, i: usize, j: usize) -> usize {
