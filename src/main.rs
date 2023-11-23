@@ -1,11 +1,14 @@
-use bevy::{diagnostic::LogDiagnosticsPlugin, prelude::*};
+use bevy::{
+    diagnostic::LogDiagnosticsPlugin, input::common_conditions::*, prelude::*,
+    window::PrimaryWindow,
+};
 
 use conway_rs::{Grid, Stamp};
 
 const COL_SIZE: usize = 127;
 const ROW_SIZE: usize = 71;
 
-const TICK_SECONDS: f32 = 0.25;
+const TICK_SECONDS: f32 = 0.5;
 
 fn spawn_camera(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
@@ -42,7 +45,14 @@ fn main() {
         .add_plugins(LogDiagnosticsPlugin::default())
         // .add_state::<GameState>()
         .add_systems(Startup, spawn_camera)
-        .add_systems(Update, (spawn_grid, tickity))
+        .add_systems(
+            Update,
+            (
+                handle_click.run_if(input_just_released(MouseButton::Left)),
+                spawn_grid,
+                tickity,
+            ),
+        )
         // Adds the plugins for each state
         // .add_plugins((splash::SplashPlugin, menu::MenuPlugin, game::GamePlugin))
         .run();
@@ -55,6 +65,9 @@ const CELL_SIZE: f32 = 10.;
 
 #[derive(Resource, Deref, DerefMut)]
 struct GameTimer(Timer);
+
+#[derive(Resource, Deref, DerefMut)]
+struct NodeGrid(Timer);
 
 fn tickity(
     time: Res<Time>,
@@ -69,51 +82,74 @@ fn tickity(
 fn spawn_grid(
     mut commands: Commands,
     grid: ResMut<Grid<COL_SIZE, ROW_SIZE>>,
-    query: Query<Entity, With<Node>>,
+    mut query: Query<(Entity, &mut BackgroundColor), With<Item>>,
 ) {
-    for entity in query.iter() {
-        commands.entity(entity).despawn();
-    }
-
-    commands
-        .spawn(NodeBundle {
-            style: Style {
-                display: Display::Grid,
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                grid_template_columns: vec![GridTrack::min_content()],
-                grid_template_rows: vec![GridTrack::auto()],
-                ..default()
-            },
-            ..default()
-        })
-        .with_children(|builder| {
-            builder
-                .spawn(NodeBundle {
-                    style: Style {
-                        height: Val::Percent(100.0),
-                        width: Val::Percent(100.0),
-                        aspect_ratio: Some(1.0),
-                        display: Display::Grid,
-                        grid_template_columns: RepeatedGridTrack::px(COL_SIZE, CELL_SIZE),
-                        grid_template_rows: RepeatedGridTrack::px(ROW_SIZE as u16, CELL_SIZE),
-                        ..default()
-                    },
+    if query.is_empty() {
+        commands
+            .spawn(NodeBundle {
+                style: Style {
+                    height: Val::Percent(100.0),
+                    width: Val::Percent(100.0),
+                    aspect_ratio: Some(1.0),
+                    display: Display::Grid,
+                    grid_template_columns: RepeatedGridTrack::px(COL_SIZE, CELL_SIZE),
+                    grid_template_rows: RepeatedGridTrack::px(ROW_SIZE as u16, CELL_SIZE),
                     ..default()
-                })
-                .with_children(|builder| {
-                    for row in grid.grid.iter() {
-                        for &cell in row.iter() {
-                            item_rect(builder, if cell { ALIVE_COLOR } else { DEAD_COLOR });
-                        }
+                },
+                ..default()
+            })
+            .with_children(|builder| {
+                for row in grid.grid.iter() {
+                    for &cell in row.iter() {
+                        item_rect(builder, if cell { ALIVE_COLOR } else { DEAD_COLOR });
                     }
-                });
-        });
+                }
+            });
+    } else {
+        let mut iterator = query.iter_mut();
+
+        for row in grid.grid.iter() {
+            for &cell in row.iter() {
+                let (_, mut background_color) = iterator.next().unwrap();
+                background_color.0 = if cell { ALIVE_COLOR } else { DEAD_COLOR };
+            }
+        }
+    }
 }
 
 fn item_rect(builder: &mut ChildBuilder, color: Color) {
-    builder.spawn(NodeBundle {
-        background_color: BackgroundColor(color),
+    builder.spawn(ItemBundle {
+        node: NodeBundle {
+            background_color: BackgroundColor(color),
+            ..default()
+        },
         ..default()
     });
+}
+
+#[derive(Component, Clone, Default)]
+pub struct Item;
+
+#[derive(Bundle, Clone, Default)]
+pub struct ItemBundle {
+    pub item: Item,
+    pub node: NodeBundle,
+}
+
+fn handle_click(
+    mut grid: ResMut<Grid<COL_SIZE, ROW_SIZE>>,
+    q_windows: Query<&Window, With<PrimaryWindow>>,
+) {
+    if let Some(position) = q_windows.single().cursor_position() {
+        let x = to_grid(position.x);
+        let y = to_grid(position.y);
+
+        grid.stamp(Stamp::Glider, (y, x));
+    } else {
+        println!("Cursor is not in the game window.");
+    }
+}
+
+fn to_grid(n: f32) -> usize {
+    (n / CELL_SIZE).floor() as usize
 }
