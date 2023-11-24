@@ -5,7 +5,7 @@ const FULL_CHAR: &str = "▓";
 
 pub type Position = (usize, usize);
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Stamp {
     Point,
     // still lifes
@@ -73,7 +73,7 @@ impl Stamp {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Simmetry {
     None,
     X,

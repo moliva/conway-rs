@@ -33,15 +33,7 @@ pub struct SelectedOption;
 
 // One of the two settings that can be set through the menu. It will be a resource in the app
 #[derive(Resource, Debug, Component, PartialEq, Eq, Clone, Copy)]
-pub enum StampResource {
-    Point,
-    Glider,
-}
+pub struct StampResource(pub Stamp);
 
 #[derive(Resource, Debug, Component, PartialEq, Eq, Clone, Copy)]
-pub enum SimmetryResource {
-    None,
-    X,
-    Y,
-    XY,
-}
+pub struct SimmetryResource(pub Simmetry);

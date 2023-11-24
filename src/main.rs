@@ -1,12 +1,9 @@
 use bevy::{diagnostic::LogDiagnosticsPlugin, input::common_conditions::*, prelude::*};
 
-use components::{
-    GameTimer, SelectedStamp, SimmetryResource, StampResource, COL_SIZE, ROW_SIZE, TICK_SECONDS,
-};
+use components::{GameTimer, SimmetryResource, StampResource, COL_SIZE, ROW_SIZE, TICK_SECONDS};
 use conway_rs::{Grid, Simmetry, Stamp};
 use systems::{
-    button_system, handle_click, menu_action, pause_system, setting_button, spawn_camera,
-    spawn_grid, tickity,
+    button_system, handle_click, pause_system, setting_button, spawn_camera, spawn_grid, tickity,
 };
 
 mod components;
@@ -35,12 +32,8 @@ fn main() {
 
     App::new()
         .insert_resource(grid)
-        .insert_resource(SelectedStamp {
-            stamp: Stamp::Point,
-            simmetry: Simmetry::None,
-        })
-        .insert_resource(StampResource::Point)
-        .insert_resource(SimmetryResource::None)
+        .insert_resource(StampResource(Stamp::Point))
+        .insert_resource(SimmetryResource(Simmetry::None))
         .insert_resource(GameTimer(Timer::from_seconds(
             TICK_SECONDS,
             TimerMode::Repeating,
@@ -52,8 +45,7 @@ fn main() {
         .add_systems(
             Update,
             (
-                menu_action,
-                handle_click.run_if(input_just_released(MouseButton::Left)),
+                handle_click.run_if(input_pressed(MouseButton::Left)),
                 pause_system,
                 setting_button::<StampResource>,
                 setting_button::<SimmetryResource>,

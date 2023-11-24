@@ -3,8 +3,8 @@ use bevy::{prelude::*, window::PrimaryWindow};
 use conway_rs::{Grid, Simmetry, Stamp};
 
 use crate::components::{
-    GameTimer, Item, ItemBundle, SelectedOption, SelectedStamp, SimmetryResource, StampResource,
-    COL_SIZE, ROW_SIZE,
+    GameTimer, Item, ItemBundle, SelectedOption, SimmetryResource, StampResource, COL_SIZE,
+    ROW_SIZE,
 };
 
 const ALIVE_COLOR: Color = Color::ANTIQUE_WHITE;
@@ -18,16 +18,6 @@ const HOVERED_PRESSED_BUTTON: Color = Color::rgb(0.25, 0.65, 0.25);
 const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
 
 const TEXT_COLOR: Color = Color::rgb(0.9, 0.9, 0.9);
-
-#[derive(Component)]
-pub enum MenuButtonAction {
-    Point,
-    Glider,
-    None,
-    X,
-    Y,
-    XY,
-}
 
 pub fn spawn_camera(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
@@ -94,31 +84,30 @@ pub fn spawn_grid(
                     })
                     .with_children(|builder| {
                         let button_style = Style {
-                            width: Val::Px(250.0),
-                            height: Val::Px(65.0),
-                            margin: UiRect::all(Val::Px(20.0)),
+                            width: Val::Px(150.0),
+                            height: Val::Px(45.0),
+                            margin: UiRect::all(Val::Px(10.0)),
                             justify_content: JustifyContent::Center,
                             align_items: AlignItems::Center,
                             ..default()
                         };
 
                         let button_text_style = TextStyle {
-                            font_size: 40.0,
+                            font_size: 25.0,
                             color: TEXT_COLOR,
                             ..default()
                         };
-                        for (action, text, stamp_resource) in [
-                            (MenuButtonAction::Point, "Point", StampResource::Point),
-                            (MenuButtonAction::Glider, "Glider", StampResource::Glider),
+
+                        builder.spawn(TextBundle::from_section("Stamp", button_text_style.clone()));
+                        for (text, stamp_resource) in [
+                            ("Point", StampResource(Stamp::Point)),
+                            ("Glider", StampResource(Stamp::Glider)),
                         ] {
-                            let mut entity = builder.spawn((
-                                ButtonBundle {
-                                    style: button_style.clone(),
-                                    background_color: NORMAL_BUTTON.into(),
-                                    ..default()
-                                },
-                                action,
-                            ));
+                            let mut entity = builder.spawn(ButtonBundle {
+                                style: button_style.clone(),
+                                background_color: NORMAL_BUTTON.into(),
+                                ..default()
+                            });
                             entity.insert(stamp_resource);
 
                             if stamp_resource == *selected_stamp_resource {
@@ -133,20 +122,21 @@ pub fn spawn_grid(
                             });
                         }
 
-                        for (action, text, simmetry_resource) in [
-                            (MenuButtonAction::None, "None", SimmetryResource::None),
-                            (MenuButtonAction::X, "X", SimmetryResource::X),
-                            (MenuButtonAction::Y, "Y", SimmetryResource::Y),
-                            (MenuButtonAction::XY, "XY", SimmetryResource::XY),
+                        builder.spawn(TextBundle::from_section(
+                            "Simmetry",
+                            button_text_style.clone(),
+                        ));
+                        for (text, simmetry_resource) in [
+                            ("None", SimmetryResource(Simmetry::None)),
+                            ("X", SimmetryResource(Simmetry::X)),
+                            ("Y", SimmetryResource(Simmetry::Y)),
+                            ("XY", SimmetryResource(Simmetry::XY)),
                         ] {
-                            let mut entity = builder.spawn((
-                                ButtonBundle {
-                                    style: button_style.clone(),
-                                    background_color: NORMAL_BUTTON.into(),
-                                    ..default()
-                                },
-                                action,
-                            ));
+                            let mut entity = builder.spawn(ButtonBundle {
+                                style: button_style.clone(),
+                                background_color: NORMAL_BUTTON.into(),
+                                ..default()
+                            });
                             entity.insert(simmetry_resource);
 
                             if simmetry_resource == *selected_simmetry_resource {
@@ -185,7 +175,8 @@ fn item_rect(builder: &mut ChildBuilder, color: Color) {
 }
 
 pub fn handle_click(
-    selected_stamp: Res<SelectedStamp>,
+    selected_stamp: Res<StampResource>,
+    selected_simmetry: Res<SimmetryResource>,
     mut grid: ResMut<Grid<COL_SIZE, ROW_SIZE>>,
     q_windows: Query<&Window, With<PrimaryWindow>>,
 ) {
@@ -198,7 +189,7 @@ pub fn handle_click(
             return;
         }
 
-        grid.stamp(selected_stamp.stamp, (y, x), selected_stamp.simmetry);
+        grid.stamp(selected_stamp.0, (y, x), selected_simmetry.0);
     } else {
         println!("Cursor is not in the game window.");
     }
@@ -217,30 +208,6 @@ pub fn pause_system(keys: Res<Input<KeyCode>>, mut timer: ResMut<GameTimer>) {
 
 fn to_grid(n: f32) -> usize {
     (n / CELL_SIZE).floor() as usize
-}
-
-pub fn menu_action(
-    interaction_query: Query<
-        (&Interaction, &MenuButtonAction),
-        (Changed<Interaction>, With<Button>),
-    >,
-    // mut app_exit_events: EventWriter<AppExit>,
-    // mut menu_state: ResMut<NextState<MenuState>>,
-    // mut game_state: ResMut<NextState<GameState>>,
-    mut selected_stamp: ResMut<SelectedStamp>,
-) {
-    for (interaction, menu_button_action) in &interaction_query {
-        if *interaction == Interaction::Pressed {
-            match menu_button_action {
-                MenuButtonAction::Point => selected_stamp.stamp = Stamp::Point,
-                MenuButtonAction::Glider => selected_stamp.stamp = Stamp::Glider,
-                MenuButtonAction::None => selected_stamp.simmetry = Simmetry::None,
-                MenuButtonAction::X => selected_stamp.simmetry = Simmetry::X,
-                MenuButtonAction::Y => selected_stamp.simmetry = Simmetry::Y,
-                MenuButtonAction::XY => selected_stamp.simmetry = Simmetry::XY,
-            }
-        }
-    }
 }
 
 pub fn button_system(
