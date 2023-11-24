@@ -1,18 +1,16 @@
-use bevy::{
-    diagnostic::LogDiagnosticsPlugin, input::common_conditions::*, prelude::*,
-    window::PrimaryWindow,
+use bevy::{diagnostic::LogDiagnosticsPlugin, input::common_conditions::*, prelude::*};
+
+use components::{
+    GameTimer, SelectedStamp, SimmetryResource, StampResource, COL_SIZE, ROW_SIZE, TICK_SECONDS,
+};
+use conway_rs::{Grid, Simmetry, Stamp};
+use systems::{
+    button_system, handle_click, menu_action, pause_system, setting_button, spawn_camera,
+    spawn_grid, tickity,
 };
 
-use conway_rs::{Grid, Simmetry, Stamp};
-
-const COL_SIZE: usize = 127;
-const ROW_SIZE: usize = 71;
-
-const TICK_SECONDS: f32 = 0.5;
-
-fn spawn_camera(mut commands: Commands) {
-    commands.spawn(Camera2dBundle::default());
-}
+mod components;
+mod systems;
 
 /**
  * The universe of the Game of Life is an infinite, two-dimensional orthogonal grid of square cells, each of which is in one of two possible states, live or dead (or populated and unpopulated, respectively). Every cell interacts with its eight neighbours, which are the cells that are horizontally, vertically, or diagonally adjacent. At each step in time, the following transitions occur:
@@ -37,7 +35,12 @@ fn main() {
 
     App::new()
         .insert_resource(grid)
-        .insert_resource(Running(true))
+        .insert_resource(SelectedStamp {
+            stamp: Stamp::Point,
+            simmetry: Simmetry::None,
+        })
+        .insert_resource(StampResource::Point)
+        .insert_resource(SimmetryResource::None)
         .insert_resource(GameTimer(Timer::from_seconds(
             TICK_SECONDS,
             TimerMode::Repeating,
@@ -49,8 +52,12 @@ fn main() {
         .add_systems(
             Update,
             (
+                menu_action,
                 handle_click.run_if(input_just_released(MouseButton::Left)),
                 pause_system,
+                setting_button::<StampResource>,
+                setting_button::<SimmetryResource>,
+                button_system,
                 spawn_grid,
                 tickity,
             ),
@@ -58,114 +65,4 @@ fn main() {
         // Adds the plugins for each state
         // .add_plugins((splash::SplashPlugin, menu::MenuPlugin, game::GamePlugin))
         .run();
-}
-
-const ALIVE_COLOR: Color = Color::ANTIQUE_WHITE;
-const DEAD_COLOR: Color = Color::DARK_GRAY;
-
-const CELL_SIZE: f32 = 10.;
-
-#[derive(Resource, Deref, DerefMut)]
-struct GameTimer(Timer);
-
-#[derive(Resource, Deref, DerefMut)]
-struct Running(bool);
-
-#[derive(Resource, Deref, DerefMut)]
-struct NodeGrid(Timer);
-
-fn tickity(
-    time: Res<Time>,
-    mut timer: ResMut<GameTimer>,
-    mut grid: ResMut<Grid<COL_SIZE, ROW_SIZE>>,
-) {
-    if timer.tick(time.delta()).finished() {
-        grid.tick();
-    }
-}
-
-fn spawn_grid(
-    mut commands: Commands,
-    grid: ResMut<Grid<COL_SIZE, ROW_SIZE>>,
-    mut query: Query<(Entity, &mut BackgroundColor), With<Item>>,
-) {
-    if query.is_empty() {
-        commands
-            .spawn(NodeBundle {
-                style: Style {
-                    height: Val::Percent(100.0),
-                    width: Val::Percent(100.0),
-                    aspect_ratio: Some(1.0),
-                    display: Display::Grid,
-                    grid_template_columns: RepeatedGridTrack::px(COL_SIZE, CELL_SIZE),
-                    grid_template_rows: RepeatedGridTrack::px(ROW_SIZE as u16, CELL_SIZE),
-                    ..default()
-                },
-                ..default()
-            })
-            .with_children(|builder| {
-                for row in grid.grid.iter() {
-                    for &cell in row.iter() {
-                        item_rect(builder, if cell { ALIVE_COLOR } else { DEAD_COLOR });
-                    }
-                }
-            });
-    } else {
-        let mut iterator = query.iter_mut();
-
-        for row in grid.grid.iter() {
-            for &cell in row.iter() {
-                let (_, mut background_color) = iterator.next().unwrap();
-                background_color.0 = if cell { ALIVE_COLOR } else { DEAD_COLOR };
-            }
-        }
-    }
-}
-
-fn item_rect(builder: &mut ChildBuilder, color: Color) {
-    builder.spawn(ItemBundle {
-        node: NodeBundle {
-            background_color: BackgroundColor(color),
-            ..default()
-        },
-        ..default()
-    });
-}
-
-#[derive(Component, Clone, Default)]
-pub struct Item;
-
-#[derive(Bundle, Clone, Default)]
-pub struct ItemBundle {
-    pub item: Item,
-    pub node: NodeBundle,
-}
-
-fn handle_click(
-    mut grid: ResMut<Grid<COL_SIZE, ROW_SIZE>>,
-    q_windows: Query<&Window, With<PrimaryWindow>>,
-) {
-    if let Some(position) = q_windows.single().cursor_position() {
-        let x = to_grid(position.x);
-        let y = to_grid(position.y);
-
-        grid.stamp(Stamp::Glider, (y, x), Simmetry::XY);
-    } else {
-        println!("Cursor is not in the game window.");
-    }
-}
-
-fn to_grid(n: f32) -> usize {
-    (n / CELL_SIZE).floor() as usize
-}
-
-fn pause_system(keys: Res<Input<KeyCode>>, mut timer: ResMut<GameTimer>) {
-    if keys.just_released(KeyCode::Space) {
-        if timer.paused() {
-            timer.reset();
-            timer.unpause();
-        } else {
-            timer.pause();
-        }
-    }
 }

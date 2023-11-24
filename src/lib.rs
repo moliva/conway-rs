@@ -5,7 +5,7 @@ const FULL_CHAR: &str = "▓";
 
 pub type Position = (usize, usize);
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Stamp {
     Point,
     // still lifes
@@ -73,7 +73,7 @@ impl Stamp {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Simmetry {
     None,
     X,
@@ -104,17 +104,17 @@ impl Simmetry {
 }
 
 #[derive(Resource, Debug, Component, PartialEq, Eq, Clone, Copy)]
-pub struct Grid<const N: usize, const M: usize> {
-    pub grid: [[bool; N]; M],
+pub struct Grid<const C: usize, const R: usize> {
+    pub grid: [[bool; C]; R],
 }
 
-impl<const N: usize, const M: usize> Grid<N, M> {
+impl<const C: usize, const R: usize> Grid<C, R> {
     pub fn sized() -> Self {
-        let grid = [[false; N]; M];
+        let grid = [[false; C]; R];
 
         Self::new(grid)
     }
-    pub fn new(grid: [[bool; N]; M]) -> Self {
+    pub fn new(grid: [[bool; C]; R]) -> Self {
         Self { grid }
     }
 
@@ -134,7 +134,7 @@ impl<const N: usize, const M: usize> Grid<N, M> {
      * 4. Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction
      */
     pub fn tick(&mut self) {
-        let mut new_grid = [[false; N]; M];
+        let mut new_grid = [[false; C]; R];
 
         for (i, row) in self.grid.iter().enumerate() {
             for (j, &cell) in row.iter().enumerate() {
@@ -176,7 +176,7 @@ impl<const N: usize, const M: usize> Grid<N, M> {
             if self.grid[i - 1][j] {
                 live_neighbors += 1;
             }
-            if j < N - 1 && self.grid[i - 1][j + 1] {
+            if j < C - 1 && self.grid[i - 1][j + 1] {
                 live_neighbors += 1;
             }
         }
@@ -184,18 +184,18 @@ impl<const N: usize, const M: usize> Grid<N, M> {
         if j > 0 && self.grid[i][j - 1] {
             live_neighbors += 1;
         }
-        if j < N - 1 && self.grid[i][j + 1] {
+        if j < C - 1 && self.grid[i][j + 1] {
             live_neighbors += 1;
         }
 
-        if i < M - 1 {
+        if i < R - 1 {
             if j > 0 && self.grid[i + 1][j - 1] {
                 live_neighbors += 1;
             }
             if self.grid[i + 1][j] {
                 live_neighbors += 1;
             }
-            if j < N - 1 && self.grid[i + 1][j + 1] {
+            if j < C - 1 && self.grid[i + 1][j + 1] {
                 live_neighbors += 1;
             }
         }
