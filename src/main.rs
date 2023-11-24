@@ -37,6 +37,7 @@ fn main() {
 
     App::new()
         .insert_resource(grid)
+        .insert_resource(Running(true))
         .insert_resource(GameTimer(Timer::from_seconds(
             TICK_SECONDS,
             TimerMode::Repeating,
@@ -49,6 +50,7 @@ fn main() {
             Update,
             (
                 handle_click.run_if(input_just_released(MouseButton::Left)),
+                pause_system,
                 spawn_grid,
                 tickity,
             ),
@@ -65,6 +67,9 @@ const CELL_SIZE: f32 = 10.;
 
 #[derive(Resource, Deref, DerefMut)]
 struct GameTimer(Timer);
+
+#[derive(Resource, Deref, DerefMut)]
+struct Running(bool);
 
 #[derive(Resource, Deref, DerefMut)]
 struct NodeGrid(Timer);
@@ -152,4 +157,15 @@ fn handle_click(
 
 fn to_grid(n: f32) -> usize {
     (n / CELL_SIZE).floor() as usize
+}
+
+fn pause_system(keys: Res<Input<KeyCode>>, mut timer: ResMut<GameTimer>) {
+    if keys.just_released(KeyCode::Space) {
+        if timer.paused() {
+            timer.reset();
+            timer.unpause();
+        } else {
+            timer.pause();
+        }
+    }
 }
