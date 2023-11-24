@@ -1,7 +1,9 @@
-use bevy::prelude::{Resource, Component};
+use bevy::prelude::{Component, Resource};
 
 const EMPTY_CHAR: &str = "░";
 const FULL_CHAR: &str = "▓";
+
+pub type Position = (usize, usize);
 
 #[derive(Debug)]
 pub enum Stamp {
@@ -23,6 +25,82 @@ pub enum Stamp {
     LighWeightSpaceship,
     MiddleWeightSpaceship,
     HeavyWeightSpaceship,
+}
+
+impl Stamp {
+    fn size(&self) -> (usize, usize) {
+        use Stamp::*;
+
+        match self {
+            Point => (1, 1),
+            Block => (2, 2),
+            BeeHive => (3, 4),
+            Loaf => todo!(),
+            Boat => todo!(),
+            Tub => (3, 3),
+            Blinker => (1, 3),
+            Toad => todo!(),
+            Beacon => todo!(),
+            Pulsar => todo!(),
+            PentaDecathlon => todo!(),
+            Glider => (3, 3),
+            LighWeightSpaceship => todo!(),
+            MiddleWeightSpaceship => todo!(),
+            HeavyWeightSpaceship => todo!(),
+        }
+    }
+
+    fn positions(&self) -> Vec<Position> {
+        use Stamp::*;
+
+        match self {
+            Point => vec![(0, 0)],
+            Block => vec![(0, 0), (0, 1), (1, 0), (1, 1)],
+            BeeHive => vec![(1, 0), (0, 1), (2, 1), (0, 2), (2, 2), (1, 3)],
+            Loaf => todo!(),
+            Boat => todo!(),
+            Tub => vec![(1, 0), (0, 1), (1, 2), (2, 1)],
+            Blinker => vec![(0, 0), (0, 1), (0, 2)],
+            Toad => todo!(),
+            Beacon => todo!(),
+            Pulsar => todo!(),
+            PentaDecathlon => todo!(),
+            Glider => vec![(0, 0), (1, 1), (1, 2), (2, 0), (2, 1)],
+            LighWeightSpaceship => todo!(),
+            MiddleWeightSpaceship => todo!(),
+            HeavyWeightSpaceship => todo!(),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Simmetry {
+    None,
+    X,
+    Y,
+    XY,
+}
+
+impl Simmetry {
+    fn rotated(&self, stamp: Stamp) -> Vec<Position> {
+        use Simmetry::*;
+
+        let positions = stamp.positions();
+
+        let (xl, yl) = stamp.size();
+        let xl = xl - 1;
+        let yl = yl - 1;
+
+        match self {
+            None => positions,
+            X => positions.into_iter().map(|(x, y)| (xl - x, y)).collect(),
+            Y => positions.into_iter().map(|(x, y)| (x, yl - y)).collect(),
+            XY => positions
+                .into_iter()
+                .map(|(x, y)| (xl - x, yl - y))
+                .collect(),
+        }
+    }
 }
 
 #[derive(Resource, Debug, Component, PartialEq, Eq, Clone, Copy)]
@@ -78,50 +156,12 @@ impl<const N: usize, const M: usize> Grid<N, M> {
         }
     }
 
-    pub fn stamp(&mut self, stamp: Stamp, initial_position: (usize, usize)) {
-        use Stamp::*;
-
-        let (xi, yi) = initial_position;
-        let positions = match stamp {
-            Point => vec![initial_position],
-            Block => vec![
-                initial_position,
-                (xi, yi + 1),
-                (xi + 1, yi),
-                (xi + 1, yi + 1),
-            ],
-            BeeHive => vec![
-                (xi + 1, yi),
-                (xi, yi + 1),
-                (xi + 2, yi + 1),
-                (xi, yi + 2),
-                (xi + 2, yi + 2),
-                (xi + 1, yi + 3),
-            ],
-            Loaf => todo!(),
-            Boat => todo!(),
-            Tub => vec![
-                (xi + 1, yi),
-                (xi, yi + 1),
-                (xi + 1, yi + 2),
-                (xi + 2, yi + 1),
-            ],
-            Blinker => vec![initial_position, (xi, yi + 1), (xi, yi + 2)],
-            Toad => todo!(),
-            Beacon => todo!(),
-            Pulsar => todo!(),
-            PentaDecathlon => todo!(),
-            Glider => vec![
-                initial_position,
-                (xi + 1, yi + 1),
-                (xi + 1, yi + 2),
-                (xi + 2, yi),
-                (xi + 2, yi + 1),
-            ],
-            LighWeightSpaceship => todo!(),
-            MiddleWeightSpaceship => todo!(),
-            HeavyWeightSpaceship => todo!(),
-        };
+    pub fn stamp(&mut self, stamp: Stamp, (xi, yi): Position, rotation: Simmetry) {
+        let positions = rotation
+            .rotated(stamp)
+            .into_iter()
+            .map(|(x, y)| (x + xi, y + yi))
+            .collect::<Vec<_>>();
 
         self.mark_alive(&positions[..])
     }

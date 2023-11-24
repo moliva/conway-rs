@@ -3,7 +3,7 @@ use bevy::{
     window::PrimaryWindow,
 };
 
-use conway_rs::{Grid, Stamp};
+use conway_rs::{Grid, Simmetry, Stamp};
 
 const COL_SIZE: usize = 127;
 const ROW_SIZE: usize = 71;
@@ -28,12 +28,12 @@ fn main() {
     let mut grid = Grid::<COL_SIZE, ROW_SIZE>::sized();
 
     // set live cells
-    grid.stamp(Stamp::Point, (9, 0));
-    grid.stamp(Stamp::Block, (4, 4));
-    grid.stamp(Stamp::Blinker, (8, 7));
-    grid.stamp(Stamp::Glider, (0, 7));
-    grid.stamp(Stamp::BeeHive, (4, 15));
-    grid.stamp(Stamp::Tub, (10, 15));
+    grid.stamp(Stamp::Point, (9, 0), Simmetry::None);
+    grid.stamp(Stamp::Block, (4, 4), Simmetry::None);
+    grid.stamp(Stamp::Blinker, (8, 7), Simmetry::None);
+    grid.stamp(Stamp::Glider, (0, 7), Simmetry::None);
+    grid.stamp(Stamp::BeeHive, (4, 15), Simmetry::None);
+    grid.stamp(Stamp::Tub, (10, 15), Simmetry::None);
 
     App::new()
         .insert_resource(grid)
@@ -144,7 +144,7 @@ fn handle_click(
         let x = to_grid(position.x);
         let y = to_grid(position.y);
 
-        grid.stamp(Stamp::Glider, (y, x));
+        grid.stamp(Stamp::Glider, (y, x), Simmetry::XY);
     } else {
         println!("Cursor is not in the game window.");
     }
