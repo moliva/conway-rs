@@ -3,8 +3,8 @@ use bevy::{prelude::*, window::PrimaryWindow};
 use conway_rs::{Grid, Simmetry, Stamp};
 
 use crate::components::{
-    GameTimer, Item, ItemBundle, SelectedOption, SimmetryResource, StampResource, COL_SIZE,
-    ROW_SIZE,
+    CurrentState, GameTimer, Item, ItemBundle, SelectedOption, SimmetryResource, StampResource,
+    COL_SIZE, ROW_SIZE,
 };
 
 const ALIVE_COLOR: Color = Color::ANTIQUE_WHITE;
@@ -39,6 +39,8 @@ pub fn spawn_grid(
     selected_stamp_resource: Res<StampResource>,
     selected_simmetry_resource: Res<SimmetryResource>,
     mut query: Query<(Entity, &mut BackgroundColor), With<Item>>,
+    mut current_state_query: Query<(Entity, &mut Text), With<CurrentState>>,
+    timer: Res<GameTimer>,
 ) {
     if query.is_empty() {
         commands
@@ -61,7 +63,7 @@ pub fn spawn_grid(
                             aspect_ratio: Some(1.0),
                             display: Display::Grid,
                             grid_template_columns: RepeatedGridTrack::px(COL_SIZE, CELL_SIZE),
-                            grid_template_rows: RepeatedGridTrack::px(ROW_SIZE as u16, CELL_SIZE),
+                            grid_template_rows: RepeatedGridTrack::px(ROW_SIZE, CELL_SIZE),
                             ..default()
                         },
                         ..default()
@@ -84,9 +86,9 @@ pub fn spawn_grid(
                     })
                     .with_children(|builder| {
                         let button_style = Style {
-                            width: Val::Px(150.0),
-                            height: Val::Px(45.0),
-                            margin: UiRect::all(Val::Px(10.0)),
+                            width: Val::Px(80.0),
+                            height: Val::Px(30.0),
+                            margin: UiRect::all(Val::Px(5.0)),
                             justify_content: JustifyContent::Center,
                             align_items: AlignItems::Center,
                             ..default()
@@ -126,33 +128,70 @@ pub fn spawn_grid(
                             "Simmetry",
                             button_text_style.clone(),
                         ));
-                        for (text, simmetry_resource) in [
-                            ("None", SimmetryResource(Simmetry::None)),
-                            ("X", SimmetryResource(Simmetry::X)),
-                            ("Y", SimmetryResource(Simmetry::Y)),
-                            ("XY", SimmetryResource(Simmetry::XY)),
-                        ] {
-                            let mut entity = builder.spawn(ButtonBundle {
-                                style: button_style.clone(),
-                                background_color: NORMAL_BUTTON.into(),
+                        builder
+                            .spawn(NodeBundle {
+                                style: Style {
+                                    flex_direction: FlexDirection::Row,
+                                    ..default()
+                                },
                                 ..default()
-                            });
-                            entity.insert(simmetry_resource);
+                            })
+                            .with_children(|builder| {
+                                for (text, simmetry_resource) in [
+                                    ("None", SimmetryResource(Simmetry::None)),
+                                    ("X", SimmetryResource(Simmetry::X)),
+                                    ("Y", SimmetryResource(Simmetry::Y)),
+                                    ("XY", SimmetryResource(Simmetry::XY)),
+                                ] {
+                                    let mut entity = builder.spawn(ButtonBundle {
+                                        style: button_style.clone(),
+                                        background_color: NORMAL_BUTTON.into(),
+                                        ..default()
+                                    });
+                                    entity.insert(simmetry_resource);
 
-                            if simmetry_resource == *selected_simmetry_resource {
-                                entity.insert(SelectedOption);
-                            }
+                                    if simmetry_resource == *selected_simmetry_resource {
+                                        entity.insert(SelectedOption);
+                                    }
 
-                            entity.with_children(|parent| {
-                                parent.spawn(TextBundle::from_section(
-                                    text,
-                                    button_text_style.clone(),
-                                ));
+                                    entity.with_children(|parent| {
+                                        parent.spawn(TextBundle::from_section(
+                                            text,
+                                            button_text_style.clone(),
+                                        ));
+                                    });
+                                }
                             });
-                        }
+
+                        let state_running_style = TextStyle {
+                            font_size: 25.0,
+                            color: if !timer.paused() {
+                                Color::BLUE
+                            } else {
+                                Color::RED
+                            },
+                            ..default()
+                        };
+
+                        builder.spawn((
+                            TextBundle::from_section("Running", state_running_style),
+                            CurrentState,
+                        ));
                     });
             });
     } else {
+        let color = if !timer.paused() {
+            Color::BLUE
+        } else {
+            Color::RED
+        };
+        let state = if !timer.paused() { "Running" } else { "Paused" };
+
+        let (_, mut text) = current_state_query.single_mut();
+
+        text.sections[0].style.color = color;
+        text.sections[0].value = state.to_owned();
+
         let mut iterator = query.iter_mut();
 
         for row in grid.grid.iter() {

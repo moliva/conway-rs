@@ -37,3 +37,6 @@ pub struct StampResource(pub Stamp);
 
 #[derive(Resource, Debug, Component, PartialEq, Eq, Clone, Copy)]
 pub struct SimmetryResource(pub Simmetry);
+
+#[derive(Component)]
+pub struct CurrentState;
