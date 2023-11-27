@@ -4,6 +4,7 @@ use components::{GameTimer, SimmetryResource, StampResource, COL_SIZE, ROW_SIZE,
 use conway_rs::{Grid, Simmetry, Stamp};
 use systems::{
     button_system, handle_click, pause_system, setting_button, spawn_camera, spawn_grid, tickity,
+    update_grid,
 };
 
 mod components;
@@ -42,6 +43,7 @@ fn main() {
         .add_plugins(LogDiagnosticsPlugin::default())
         // .add_state::<GameState>()
         .add_systems(Startup, spawn_camera)
+        .add_systems(Startup, spawn_grid)
         .add_systems(
             Update,
             (
@@ -50,7 +52,7 @@ fn main() {
                 setting_button::<StampResource>,
                 setting_button::<SimmetryResource>,
                 button_system,
-                spawn_grid,
+                update_grid,
                 tickity,
             ),
         )

@@ -38,167 +38,166 @@ pub fn spawn_grid(
     grid: ResMut<Grid<COL_SIZE, ROW_SIZE>>,
     selected_stamp_resource: Res<StampResource>,
     selected_simmetry_resource: Res<SimmetryResource>,
+    timer: Res<GameTimer>,
+) {
+    commands
+        .spawn(NodeBundle {
+            style: Style {
+                height: Val::Percent(100.0),
+                width: Val::Percent(100.0),
+                aspect_ratio: Some(1.0),
+                display: Display::Flex,
+                ..default()
+            },
+            ..default()
+        })
+        .with_children(|builder| {
+            builder
+                .spawn(NodeBundle {
+                    style: Style {
+                        height: Val::Percent(100.0),
+                        width: Val::Percent(100.0),
+                        aspect_ratio: Some(1.0),
+                        display: Display::Grid,
+                        grid_template_columns: RepeatedGridTrack::px(COL_SIZE, CELL_SIZE),
+                        grid_template_rows: RepeatedGridTrack::px(ROW_SIZE, CELL_SIZE),
+                        ..default()
+                    },
+                    ..default()
+                })
+                .with_children(|builder| {
+                    for row in grid.grid.iter() {
+                        for &cell in row.iter() {
+                            item_rect(builder, if cell { ALIVE_COLOR } else { DEAD_COLOR });
+                        }
+                    }
+                });
+
+            builder
+                .spawn(NodeBundle {
+                    style: Style {
+                        flex_direction: FlexDirection::Column,
+                        ..default()
+                    },
+                    ..default()
+                })
+                .with_children(|builder| {
+                    let button_style = Style {
+                        width: Val::Px(80.0),
+                        height: Val::Px(30.0),
+                        margin: UiRect::all(Val::Px(5.0)),
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
+                        ..default()
+                    };
+
+                    let button_text_style = TextStyle {
+                        font_size: 25.0,
+                        color: TEXT_COLOR,
+                        ..default()
+                    };
+
+                    builder.spawn(TextBundle::from_section("Stamp", button_text_style.clone()));
+                    for (text, stamp_resource) in [
+                        ("Point", StampResource(Stamp::Point)),
+                        ("Glider", StampResource(Stamp::Glider)),
+                    ] {
+                        let mut entity = builder.spawn(ButtonBundle {
+                            style: button_style.clone(),
+                            background_color: NORMAL_BUTTON.into(),
+                            ..default()
+                        });
+                        entity.insert(stamp_resource);
+
+                        if stamp_resource == *selected_stamp_resource {
+                            entity.insert(SelectedOption);
+                        }
+
+                        entity.with_children(|parent| {
+                            parent.spawn(TextBundle::from_section(text, button_text_style.clone()));
+                        });
+                    }
+
+                    builder.spawn(TextBundle::from_section(
+                        "Simmetry",
+                        button_text_style.clone(),
+                    ));
+                    builder
+                        .spawn(NodeBundle {
+                            style: Style {
+                                flex_direction: FlexDirection::Row,
+                                ..default()
+                            },
+                            ..default()
+                        })
+                        .with_children(|builder| {
+                            for (text, simmetry_resource) in [
+                                ("None", SimmetryResource(Simmetry::None)),
+                                ("X", SimmetryResource(Simmetry::X)),
+                                ("Y", SimmetryResource(Simmetry::Y)),
+                                ("XY", SimmetryResource(Simmetry::XY)),
+                            ] {
+                                let mut entity = builder.spawn(ButtonBundle {
+                                    style: button_style.clone(),
+                                    background_color: NORMAL_BUTTON.into(),
+                                    ..default()
+                                });
+                                entity.insert(simmetry_resource);
+
+                                if simmetry_resource == *selected_simmetry_resource {
+                                    entity.insert(SelectedOption);
+                                }
+
+                                entity.with_children(|parent| {
+                                    parent.spawn(TextBundle::from_section(
+                                        text,
+                                        button_text_style.clone(),
+                                    ));
+                                });
+                            }
+                        });
+
+                    let (text, color) = style_for_state(!timer.paused());
+                    let state_running_style = TextStyle {
+                        font_size: 25.0,
+                        color,
+                        ..default()
+                    };
+
+                    builder.spawn((
+                        TextBundle::from_section(text, state_running_style),
+                        CurrentState,
+                    ));
+                });
+        });
+}
+
+fn style_for_state(is_running: bool) -> (String, Color) {
+    let color = if is_running { Color::BLUE } else { Color::RED };
+    let state = if is_running { "Running" } else { "Paused" };
+
+    (state.to_owned(), color)
+}
+
+pub fn update_grid(
+    grid: ResMut<Grid<COL_SIZE, ROW_SIZE>>,
     mut query: Query<(Entity, &mut BackgroundColor), With<Item>>,
     mut current_state_query: Query<(Entity, &mut Text), With<CurrentState>>,
     timer: Res<GameTimer>,
 ) {
-    if query.is_empty() {
-        commands
-            .spawn(NodeBundle {
-                style: Style {
-                    height: Val::Percent(100.0),
-                    width: Val::Percent(100.0),
-                    aspect_ratio: Some(1.0),
-                    display: Display::Flex,
-                    ..default()
-                },
-                ..default()
-            })
-            .with_children(|builder| {
-                builder
-                    .spawn(NodeBundle {
-                        style: Style {
-                            height: Val::Percent(100.0),
-                            width: Val::Percent(100.0),
-                            aspect_ratio: Some(1.0),
-                            display: Display::Grid,
-                            grid_template_columns: RepeatedGridTrack::px(COL_SIZE, CELL_SIZE),
-                            grid_template_rows: RepeatedGridTrack::px(ROW_SIZE, CELL_SIZE),
-                            ..default()
-                        },
-                        ..default()
-                    })
-                    .with_children(|builder| {
-                        for row in grid.grid.iter() {
-                            for &cell in row.iter() {
-                                item_rect(builder, if cell { ALIVE_COLOR } else { DEAD_COLOR });
-                            }
-                        }
-                    });
+    let (state, color) = style_for_state(!timer.paused());
 
-                builder
-                    .spawn(NodeBundle {
-                        style: Style {
-                            flex_direction: FlexDirection::Column,
-                            ..default()
-                        },
-                        ..default()
-                    })
-                    .with_children(|builder| {
-                        let button_style = Style {
-                            width: Val::Px(80.0),
-                            height: Val::Px(30.0),
-                            margin: UiRect::all(Val::Px(5.0)),
-                            justify_content: JustifyContent::Center,
-                            align_items: AlignItems::Center,
-                            ..default()
-                        };
+    let (_, mut text) = current_state_query.single_mut();
 
-                        let button_text_style = TextStyle {
-                            font_size: 25.0,
-                            color: TEXT_COLOR,
-                            ..default()
-                        };
+    text.sections[0].style.color = color;
+    text.sections[0].value = state;
 
-                        builder.spawn(TextBundle::from_section("Stamp", button_text_style.clone()));
-                        for (text, stamp_resource) in [
-                            ("Point", StampResource(Stamp::Point)),
-                            ("Glider", StampResource(Stamp::Glider)),
-                        ] {
-                            let mut entity = builder.spawn(ButtonBundle {
-                                style: button_style.clone(),
-                                background_color: NORMAL_BUTTON.into(),
-                                ..default()
-                            });
-                            entity.insert(stamp_resource);
+    let mut iterator = query.iter_mut();
 
-                            if stamp_resource == *selected_stamp_resource {
-                                entity.insert(SelectedOption);
-                            }
-
-                            entity.with_children(|parent| {
-                                parent.spawn(TextBundle::from_section(
-                                    text,
-                                    button_text_style.clone(),
-                                ));
-                            });
-                        }
-
-                        builder.spawn(TextBundle::from_section(
-                            "Simmetry",
-                            button_text_style.clone(),
-                        ));
-                        builder
-                            .spawn(NodeBundle {
-                                style: Style {
-                                    flex_direction: FlexDirection::Row,
-                                    ..default()
-                                },
-                                ..default()
-                            })
-                            .with_children(|builder| {
-                                for (text, simmetry_resource) in [
-                                    ("None", SimmetryResource(Simmetry::None)),
-                                    ("X", SimmetryResource(Simmetry::X)),
-                                    ("Y", SimmetryResource(Simmetry::Y)),
-                                    ("XY", SimmetryResource(Simmetry::XY)),
-                                ] {
-                                    let mut entity = builder.spawn(ButtonBundle {
-                                        style: button_style.clone(),
-                                        background_color: NORMAL_BUTTON.into(),
-                                        ..default()
-                                    });
-                                    entity.insert(simmetry_resource);
-
-                                    if simmetry_resource == *selected_simmetry_resource {
-                                        entity.insert(SelectedOption);
-                                    }
-
-                                    entity.with_children(|parent| {
-                                        parent.spawn(TextBundle::from_section(
-                                            text,
-                                            button_text_style.clone(),
-                                        ));
-                                    });
-                                }
-                            });
-
-                        let state_running_style = TextStyle {
-                            font_size: 25.0,
-                            color: if !timer.paused() {
-                                Color::BLUE
-                            } else {
-                                Color::RED
-                            },
-                            ..default()
-                        };
-
-                        builder.spawn((
-                            TextBundle::from_section("Running", state_running_style),
-                            CurrentState,
-                        ));
-                    });
-            });
-    } else {
-        let color = if !timer.paused() {
-            Color::BLUE
-        } else {
-            Color::RED
-        };
-        let state = if !timer.paused() { "Running" } else { "Paused" };
-
-        let (_, mut text) = current_state_query.single_mut();
-
-        text.sections[0].style.color = color;
-        text.sections[0].value = state.to_owned();
-
-        let mut iterator = query.iter_mut();
-
-        for row in grid.grid.iter() {
-            for &cell in row.iter() {
-                let (_, mut background_color) = iterator.next().unwrap();
-                background_color.0 = if cell { ALIVE_COLOR } else { DEAD_COLOR };
-            }
+    for row in grid.grid.iter() {
+        for &cell in row.iter() {
+            let (_, mut background_color) = iterator.next().unwrap();
+            background_color.0 = if cell { ALIVE_COLOR } else { DEAD_COLOR };
         }
     }
 }
